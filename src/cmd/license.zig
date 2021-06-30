@@ -15,6 +15,7 @@ const Map = std.StringArrayHashMap(*List);
 // https://github.com/onur/cargo-license
 
 pub fn execute(args: [][]u8) !void {
+    _ = args;
     //
     const dir = try std.fs.path.join(gpa, &.{ ".zigmod", "deps" });
 

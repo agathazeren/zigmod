@@ -60,6 +60,7 @@ pub const Module = struct {
 
         std.sort.sort([]const u8, file_list_2.items, void{}, struct {
             pub fn lt(context: void, lhs: []const u8, rhs: []const u8) bool {
+                _ = context;
                 return std.mem.lessThan(u8, lhs, rhs);
             }
         }.lt);

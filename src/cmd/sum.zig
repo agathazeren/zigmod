@@ -10,6 +10,7 @@ const common = @import("./../common.zig");
 //
 
 pub fn execute(args: [][]u8) !void {
+    _ = args;
     //
     const dir = try std.fs.path.join(gpa, &.{ ".zigmod", "deps" });
 

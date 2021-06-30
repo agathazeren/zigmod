@@ -29,6 +29,8 @@ pub const Item = union(enum) {
     stream: Stream,
 
     pub fn format(self: Item, comptime fmt: []const u8, options: std.fmt.FormatOptions, writer: anytype) @TypeOf(writer).Error!void {
+        _ = fmt;
+        _ = options;
         try writer.writeAll("Item{");
         switch (self) {
             .event => {
@@ -68,6 +70,8 @@ pub const Value = union(enum) {
     sequence: Sequence,
 
     pub fn format(self: Value, comptime fmt: []const u8, options: std.fmt.FormatOptions, writer: anytype) @TypeOf(writer).Error!void {
+        _ = fmt;
+        _ = options;
         try writer.writeAll("Value{");
         switch (self) {
             .string => {
@@ -109,7 +113,7 @@ pub const Mapping = struct {
         defer list.deinit();
         if (self.get(k)) |val| {
             if (val == .sequence) {
-                for (val.sequence) |item, i| {
+                for (val.sequence) |item| {
                     if (item != .string) {
                         continue;
                     }
@@ -121,6 +125,8 @@ pub const Mapping = struct {
     }
 
     pub fn format(self: Mapping, comptime fmt: []const u8, options: std.fmt.FormatOptions, writer: anytype) @TypeOf(writer).Error!void {
+        _ = fmt;
+        _ = options;
         try writer.writeAll("{ ");
         for (self.items) |it| {
             try std.fmt.format(writer, "{s}: ", .{it.key});
