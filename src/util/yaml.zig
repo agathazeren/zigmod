@@ -133,6 +133,20 @@ pub const Mapping = struct {
 pub const Token = c.yaml_event_t;
 pub const TokenList = []const Token;
 
+pub const EventType = enum(c_uint) {
+    none = @as(c_uint, c.YAML_NO_EVENT),
+    stream_start = @as(c_uint, c.YAML_STREAM_START_EVENT),
+    stream_end = @as(c_uint, c.YAML_STREAM_END_EVENT),
+    document_start = @as(c_uint, c.YAML_DOCUMENT_START_EVENT),
+    document_end = @as(c_uint, c.YAML_DOCUMENT_END_EVENT),
+    alias = @as(c_uint, c.YAML_ALIAS_EVENT),
+    scalar = @as(c_uint, c.YAML_SCALAR_EVENT),
+    sequence_start = @as(c_uint, c.YAML_SEQUENCE_START_EVENT),
+    sequence_end = @as(c_uint, c.YAML_SEQUENCE_END_EVENT),
+    mapping_start = @as(c_uint, c.YAML_MAPPING_START_EVENT),
+    mapping_end = @as(c_uint, c.YAML_MAPPING_END_EVENT),
+};
+
 //
 //
 
@@ -152,7 +166,7 @@ pub fn parse(alloc: *std.mem.Allocator, input: []const u8) !Document {
             break;
         }
 
-        const et = @enumToInt(event.type);
+        const et = event.type;
         try all_events.append(event);
         c.yaml_event_delete(&event);
 
@@ -199,12 +213,12 @@ pub const Error =
 
 fn parse_item(p: *Parser, start: ?Token) Error!Item {
     const tok = start orelse p.next();
-    return switch (tok.?.type) {
-        .YAML_STREAM_START_EVENT => Item{ .stream = try parse_stream(p) },
-        .YAML_DOCUMENT_START_EVENT => Item{ .document = try parse_document(p) },
-        .YAML_MAPPING_START_EVENT => Item{ .mapping = try parse_mapping(p) },
-        .YAML_SEQUENCE_START_EVENT => Item{ .sequence = try parse_sequence(p) },
-        .YAML_SCALAR_EVENT => Item{ .string = get_event_string(tok.?, p.lines) },
+    return switch (@intToEnum(EventType, tok.?.type)) {
+        .stream_start => Item{ .stream = try parse_stream(p) },
+        .document_start => Item{ .document = try parse_document(p) },
+        .mapping_start => Item{ .mapping = try parse_mapping(p) },
+        .sequence_start => Item{ .sequence = try parse_sequence(p) },
+        .scalar => Item{ .string = get_event_string(tok.?, p.lines) },
         else => unreachable,
     };
 }
@@ -215,10 +229,10 @@ fn parse_stream(p: *Parser) Error!Stream {
 
     while (true) {
         const tok = p.next();
-        if (tok.?.type == .YAML_STREAM_END_EVENT) {
+        if (@intToEnum(EventType, tok.?.type) == .stream_end) {
             return Stream{ .docs = res.toOwnedSlice() };
         }
-        if (tok.?.type != .YAML_DOCUMENT_START_EVENT) {
+        if (@intToEnum(EventType, tok.?.type) != .document_start) {
             return error.YamlUnexpectedToken;
         }
         const item = try parse_item(p, tok);
@@ -228,12 +242,12 @@ fn parse_stream(p: *Parser) Error!Stream {
 
 fn parse_document(p: *Parser) Error!Document {
     const tok = p.next();
-    if (tok.?.type != .YAML_MAPPING_START_EVENT) {
+    if (@intToEnum(EventType, tok.?.type) != .mapping_start) {
         return error.YamlUnexpectedToken;
     }
     const item = try parse_item(p, tok);
 
-    if (p.next().?.type != .YAML_DOCUMENT_END_EVENT) {
+    if (@intToEnum(EventType, p.next().?.type) != .document_end) {
         return error.YamlUnexpectedToken;
     }
     return Document{ .mapping = item.mapping };
@@ -245,10 +259,10 @@ fn parse_mapping(p: *Parser) Error!Mapping {
 
     while (true) {
         const tok = p.next();
-        if (tok.?.type == .YAML_MAPPING_END_EVENT) {
+        if (@intToEnum(EventType, tok.?.type) == .mapping_end) {
             return Mapping{ .items = res.toOwnedSlice() };
         }
-        if (tok.?.type != .YAML_SCALAR_EVENT) {
+        if (@intToEnum(EventType, tok.?.type) != .scalar) {
             return error.YamlUnexpectedToken;
         }
         try res.append(Key{
@@ -274,7 +288,7 @@ fn parse_sequence(p: *Parser) Error!Sequence {
 
     while (true) {
         const tok = p.next();
-        if (tok.?.type == .YAML_SEQUENCE_END_EVENT) {
+        if (@intToEnum(EventType, tok.?.type) == .sequence_end) {
             return res.toOwnedSlice();
         }
         try res.append(try parse_item(p, tok));
